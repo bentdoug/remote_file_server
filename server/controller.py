@@ -1,8 +1,9 @@
 import struct
 import os
+import env_variables as env
 
-PACKET_FORMAT = os.getenv("PACKET_FORMAT") #"ss"  opcode [b'<STR>], filename [b'<STR>]
-OPCODES = os.getenv("OPCODES") # Dictionary of opcodes key: name/function - value: corresponding opcode
+PACKET_FORMAT = env.PACKET_FORMAT #"ss"  opcode [b'<STR>], filename [b'<STR>]
+OPCODES = env.OPCODES # Dictionary of opcodes key: name/function - value: corresponding opcode
 
 class server:
     '''
@@ -114,3 +115,9 @@ class server:
             return True
         else: # Hashes are different (file has changed)
             return False
+        
+def start():
+    '''
+    Entry point for server initialization. Creates & initializes a server object
+    '''
+    server_instance = server()

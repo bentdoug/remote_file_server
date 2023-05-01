@@ -11,6 +11,3 @@ OPCODES = {
     }
 
 PACKET_FORMAT = "ss" # opcode (str) file name (str)
-
-os.environ["PACKET_FORMAT"] = PACKET_FORMAT
-os.environ["OPCODES"] = OPCODES

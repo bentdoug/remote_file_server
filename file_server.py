@@ -7,7 +7,7 @@ import env_variables
 This module serves as an entry point for both the server and client side of the remote file server program
 '''
 
-side = input("Type \'S\' to run server and \'C\' to run client") # Ask the user for input indicating whether they would like to run server or client
+side = input("Type \'S\' to run server and \'C\' to run client\n") # Ask the user for input indicating whether they would like to run server or client
 
 if side == 'S':
     server_controller.start()
