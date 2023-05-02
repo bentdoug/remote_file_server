@@ -31,6 +31,8 @@ def parse_packet(packet):
     return opcode, block_number, data
 
 #sendng packets over  socket
+#takes sock which is the sock object, the block number, a byte object for data and an optional address. creates a tftp packet using create packet
+# and sends it to the address given
 def send_tftp_packet(sock, opcode, block_number=0, data=b'', addr=None):
     packet = create_packet(opcode, block_number, data)
     if addr is None:
@@ -39,7 +41,10 @@ def send_tftp_packet(sock, opcode, block_number=0, data=b'', addr=None):
         sock.sendto(packet, addr)
     return packet
 
-#recieving packtes. Calls for an RRQ from either client and requires a reponse of packet and such left
+# Recieving packtes. Calls for an RRQ from either client and requires a reponse of packet and such left.
+# Server_addr should be a tuple of the ip address and the port number. filename is the name of the file you want
+# creates a udp socket that sends a RRQ packet using the send_tftp_packet method and waits for a data packet. once the data is recieved it sends an ask and returns the 
+#btyearray of the data. method has little error notice and if nothing is recieved socket is closed and reminds you that no data was sent
 def tftp_download_file(server_addr, filename):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     data = bytearray()
