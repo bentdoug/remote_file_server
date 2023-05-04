@@ -1,6 +1,6 @@
 import struct
-import os
 import env_variables as env
+from comms import TFTP
 
 PACKET_FORMAT = env.PACKET_FORMAT #"ss"  opcode [b'<STR>], filename [b'<STR>]
 OPCODES = env.OPCODES # Dictionary of opcodes key: name/function - value: corresponding opcode
