@@ -14,6 +14,10 @@ ERROR_OPCODE = 5
 MAX_PACKET_SIZE = 516
 MAX_DATA_SIZE = 512
 
+#denote whether this should be a TFTP message or regular message
+Traditonal = 1
+TFTP = 2
+
 #method to create a packet and fill
 def create_packet(opcode, block_number=0, data=b''):
     packet = bytearray()
@@ -64,3 +68,21 @@ def tftp_download_file(server_addr, filename):
     except EOFError:
         print("no data provided to input function")
         sock.close()
+        
+#takes in sock object and asks for a message to send throught the object
+def send_message(Sock):
+    message = input("Enter your message: ")
+    
+    Sock.sendall(message.encode())
+
+#determines which way to send a message
+"""
+def send(data, method):
+    if method == Traditonal:
+        send_message(data)
+    elif method == TFTP:
+        send_tftp_packet(sock, opcode, block_number=0, data=b'', addr=None)
+    else:
+        raise ValueError(f"Invalid transfer method: {method}")
+    
+    """
