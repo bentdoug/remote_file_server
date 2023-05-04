@@ -1,6 +1,7 @@
 import struct
-import env_variables as env
-from comms import TFTP
+import common_variables as env
+import TFTPfinal as comms
+import Database
 
 PACKET_FORMAT = env.PACKET_FORMAT #"ss"  opcode [b'<STR>], filename [b'<STR>]
 OPCODES = env.OPCODES # Dictionary of opcodes key: name/function - value: corresponding opcode
@@ -15,8 +16,9 @@ class server:
         Initializes a server object, loads in the db of files saved to the server, listens for a client connection, and syncronizes
         with client upon connection. After syncronization, server waits for client command input.
         '''
-        self.stored_files = load_db() # TODO: Confirm method naming to load in csv information from DB
-        self.client = comms.establish_connection() # TODO: Confirm method naming to initialize socket connection - return once connection accepted
+        self.db = Database.Database()
+        self.files_hashes = self.db.get_db()
+        self.client = comms.receive_client_connection() # TODO: Confirm method naming to initialize socket connection - return once connection accepted
         self.sync()
         self.listen_for_cmd()
 
@@ -37,6 +39,9 @@ class server:
             if recvd[0] == OPCODES["compare_hashes"]: # Client is requesting to compare the hash of the specified file
                 self.send_acknowledgement(OPCODES["compare_hashes"])
                 self.compare_hash(recvd[1])
+            if recvd[0] == OPCODES["add_file"]:
+                self.send_acknowledgment(OPCODES["add_file"])
+                self.get_file_info(recvd[1])
             if recvd[0] == OPCODES["send_file_hash"]: # Client is requesting to send the hash of the specified file to the server
                 pass
             if recvd[0] == OPCODES["request_file_hash"]: # Client is requesting the server to send the stored hash of the specified file
@@ -50,12 +55,12 @@ class server:
         '''
         Syncronizes the server db with the client file's state
         '''
-        client_hashes = self.client.send_and_recv(self.stored_files.keys()) # Sends the keys (names of already saved files) to the client and awaits response
+        client_hashes = self.client.send_and_recv(self.files_hashes.keys()) # Sends the keys (names of already saved files) to the client and awaits response
         to_update = []
         # Create a list of files that are no longer up-to-date
-        for file in self.stored_files.keys():
+        for file in self.files_hashes.keys():
             try:
-                if self.stored_files[file] != client_hashes[file]:
+                if self.files_hashes[file] != client_hashes[file]:
                     to_update.append(file)
             except KeyError:
                 print("The following file's information was requested from client but not returned to server: {0}".format(file))
@@ -78,16 +83,17 @@ class server:
         file_contents = self.client.send_and_recv(request_cmd)
         self.save_file(file_contents)
 
-    def save_file(file):
+    def save_file(self, file):
         '''
-        Initiate saving the contents of a file recieved from the client
+        Initiate saving the contents of a file recieved from the client and save the hash of the new file
 
         Parameters:
             file (struct)
                 The packet containing the file to be unpacked and saved to the server
         '''
         file_contents = struct.unpack(PACKET_FORMAT, file)
-        db.save_to_db(file_contents) # TODO: Send the contents of the unpacked file to get saved to the db
+        self.db.save_file(file_contents) # TODO: Send the contents of the unpacked file to get saved to the db
+        self.files_hashes[file] = hash(file_contents)
 
     def compare_hash(self, file_name):
         '''
@@ -102,7 +108,7 @@ class server:
             Boolean:
                 True/False indicating whether the file hashes are the same (True) or different (False)
         '''
-        server_hash = db.get_hash(file_name)
+        server_hash = self.files_hashes[file_name]
 
         packet_info = [OPCODES["request_hash"], file_name.encode('utf-8')]
         request_cmd = struct.pack(PACKET_FORMAT, *packet_info)
