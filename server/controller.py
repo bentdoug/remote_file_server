@@ -1,10 +1,13 @@
 import struct
 import common_variables as env
-import TFTPfinal as comms
+import TFTPfinal
+import comms.communications as comms
 import Database
+import json
 
 PACKET_FORMAT = env.PACKET_FORMAT #"ss"  opcode [b'<STR>], filename [b'<STR>]
 OPCODES = env.OPCODES # Dictionary of opcodes key: name/function - value: corresponding opcode
+client_address = "0.0.0.0"
 
 class server:
     '''
@@ -18,9 +21,9 @@ class server:
         '''
         self.db = Database.Database()
         self.files_hashes = self.db.get_db()
-        self.client = comms.receive_client_connection() # TODO: Confirm method naming to initialize socket connection - return once connection accepted
+        self.comms = comms.comms(1)
         self.sync()
-        self.listen_for_cmd()
+        self.comms.receive_opcode()
 
     def listen_for_cmd(self):
         '''
@@ -29,7 +32,7 @@ class server:
         '''
         state = None
         while state is not OPCODES["Quit"]:
-            recvd = self.client.listen()
+            recvd = self.comms.listen()
             if recvd[0] == OPCODES["request_file_info"]: # Client requesting server's version of specified file
                 self.send_acknowledgement(OPCODES["request_file_contents"])
                 self.send_file_info(recvd[1])
@@ -49,25 +52,31 @@ class server:
             if recvd[0] == OPCODES["disconnect"]: # Client is requesting to disconnect. Triggers final syncronization followed by disconnection
                 self.send_acknowledgement(OPCODES["disconnect"])
                 self.sync()
-                self.client.disconnect()
+                self.comms.disconnect()
 
     def sync(self):
         '''
         Syncronizes the server db with the client file's state
         '''
-        client_hashes = self.client.send_and_recv(self.files_hashes.keys()) # Sends the keys (names of already saved files) to the client and awaits response
-        to_update = []
-        # Create a list of files that are no longer up-to-date
-        for file in self.files_hashes.keys():
-            try:
-                if self.files_hashes[file] != client_hashes[file]:
-                    to_update.append(file)
-            except KeyError:
-                print("The following file's information was requested from client but not returned to server: {0}".format(file))
-        
-        # Request to update out-of-date files
-        for file in to_update:
-            self.get_file_info(file)
+        received_file_hashes = ""
+        if self.files_hashes.keys():
+            for file in self.files_hashes.keys():
+                self.comms.send_opcode(OPCODES["request_file_hash"], file)
+                received_file_hashes.append(self.comms.recieve_str())
+            print('received hashes {}'.format(received_file_hashes))
+            client_hashes = json.loads(received_file_hashes)
+            to_update = []
+            # Create a list of files that are no longer up-to-date
+            for file in self.files_hashes.keys():
+                try:
+                    if self.files_hashes[file] != client_hashes[file]:
+                        to_update.append(file)
+                except KeyError:
+                    print("The following file's information was requested from client but not returned to server: {0}".format(file))
+            
+            # Request to update out-of-date files
+            for file in to_update:
+                self.get_file_info(file)
 
     def get_file_info(self, file):
         '''
