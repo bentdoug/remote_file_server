@@ -14,6 +14,10 @@ ERROR_OPCODE = 5
 MAX_PACKET_SIZE = 516
 MAX_DATA_SIZE = 512
 
+#denote whether this should be a TFTP message or regular message
+Traditonal = 1
+TFTP = 2
+
 #method to create a packet and fill
 def create_packet(opcode, block_number=0, data=b''):
     packet = bytearray()
@@ -31,6 +35,8 @@ def parse_packet(packet):
     return opcode, block_number, data
 
 #sendng packets over  socket
+#takes sock which is the sock object, the block number, a byte object for data and an optional address. creates a tftp packet using create packet
+# and sends it to the address given
 def send_tftp_packet(sock, opcode, block_number=0, data=b'', addr=None):
     packet = create_packet(opcode, block_number, data)
     if addr is None:
@@ -39,7 +45,10 @@ def send_tftp_packet(sock, opcode, block_number=0, data=b'', addr=None):
         sock.sendto(packet, addr)
     return packet
 
-#recieving packtes. Calls for an RRQ from either client and requires a reponse of packet and such left
+# Recieving packtes. Calls for an RRQ from either client and requires a reponse of packet and such left.
+# Server_addr should be a tuple of the ip address and the port number. filename is the name of the file you want
+# creates a udp socket that sends a RRQ packet using the send_tftp_packet method and waits for a data packet. once the data is recieved it sends an ask and returns the 
+#btyearray of the data. method has little error notice and if nothing is recieved socket is closed and reminds you that no data was sent
 def tftp_download_file(server_addr, filename):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     data = bytearray()
@@ -59,3 +68,21 @@ def tftp_download_file(server_addr, filename):
     except EOFError:
         print("no data provided to input function")
         sock.close()
+        
+#takes in sock object and asks for a message to send throught the object
+def send_message(Sock):
+    message = input("Enter your message: ")
+    
+    Sock.sendall(message.encode())
+
+#determines which way to send a message
+"""
+def send(data, method):
+    if method == Traditonal:
+        send_message(data)
+    elif method == TFTP:
+        send_tftp_packet(sock, opcode, block_number=0, data=b'', addr=None)
+    else:
+        raise ValueError(f"Invalid transfer method: {method}")
+    
+    """
