@@ -1,8 +1,10 @@
+import os
+
 class Database():
     def __init__(self) -> None:
-        self.csv = "csv.txt"
+        self.csv = "{}/csv.txt".format(os.getcwd())
         self.db = {}
-
+        self.db = self.convert_txt_to_db()
     def convert_txt_to_db(self):
         '''
         Goal: Convert the CSV text file to a database for Startup
@@ -49,5 +51,6 @@ def save_file(title, data):
     Returns
     None
     '''
-    with open("bin/{}".format(title), "w") as f:
+    path = os.getcwd()
+    with open("{}/{}".format(path, title), "w") as f:
         f.write(data)
