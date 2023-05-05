@@ -2,7 +2,7 @@ class Database():
     def __init__(self) -> None:
         self.csv = "csv.txt"
         self.db = {}
-
+        self.db = self.convert_txt_to_db()
     def convert_txt_to_db(self):
         '''
         Goal: Convert the CSV text file to a database for Startup
