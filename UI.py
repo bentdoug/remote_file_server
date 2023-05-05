@@ -1,4 +1,5 @@
-import env_variables
+from client import controller
+import os
 
 def call_fn():
     '''
@@ -8,6 +9,25 @@ def call_fn():
     ----------
     None
     ----------
-    Returns: str - opcode for controller to call
+    Returns: None
     '''
-    
+    cont = False
+    while not cont:
+        cmd = input("Do you want to add, receive, or disconnect? Please respond with one word")
+        if cmd == "add":
+            next_cmd = input("Which file would you like to add?")
+            next_cmd = "bin/{}".format(next_cmd)
+            if os.path.exists(next_cmd):
+                fn = controller.push_file(next_cmd)
+                cont = True
+            else:
+                print("File does not exist")
+        elif cmd == "receive":
+            next_cmd = input("Which file would you like to receive?")
+            next_cmd = "bin/{}".format(next_cmd)
+            fn = controller.pull_file(next_cmd)
+            cont = True
+        elif cmd == "disconnect":
+            fn = controller.disconnect()
+        else:
+            print("Invalid command, please try again")
