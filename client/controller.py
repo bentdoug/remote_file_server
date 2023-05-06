@@ -29,13 +29,11 @@ class client:
         state = None
         while state is not OPCODES["Done"]:
             recvd = self.comms.receive_opcode()
-            print("Client got {recvd} from the server")
             if recvd[0] == OPCODES["request_file_hash"]: # Server is requesting information regarding the client's version of specified file
                 #self.send_acknowledgement(OPCODES["request_file_info"])
                 self.send_file_hash(recvd[1])
             if recvd[0] == OPCODES["request_file_contents"]: # Server is requesting the contents of the specified file
-                self.send_acknowledgement(OPCODES["request_file_contents"])
-                self.send_file_contents(recvd[1])
+                self.send_file_contents('bin/client/'+recvd[1])
             if recvd[0] == OPCODES["Done"]:
                 state = OPCODES["Done"]
 
@@ -50,6 +48,8 @@ class client:
         with open(file, 'r') as f:
             file_contents = f.read()
         self.comms.send_file(file)
+        time.sleep(1)
+        self.comms.send_opcode(OPCODES["Done"])
     
     def send_acknowledgement(self, cmd):
         packet_info = [cmd, None.encode('utf-8')]
@@ -57,16 +57,17 @@ class client:
         self.comms.send_str(request_cmd)
 
     def send_file_hash(self, file):
-        with open(file, 'r') as f:
+        with open('bin/client/'+file, 'r') as f:
             file_contents = f.read()
-        self.comms.send_str(hash(file_contents))
+        self.comms.send_hash(file, hash(file_contents))
 
     def disconnect(self):
         self.comms.send_opcode(OPCODES["disconnect"])
+        #self.listen_for_server_cmd()
         sys.exit()
 
 def start():
     '''
-    Entry point for server initialization. Creates & initializes a server object
+    Entry point for client initialization. Creates & initializes a client object
     '''
     server_instance = client()
