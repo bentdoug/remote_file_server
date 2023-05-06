@@ -74,10 +74,11 @@ def send_message(Sock):
     message = input("Enter your message: ")
     
     Sock.sendall(message.encode())
-
+    
 #determines which way to send a message
-"""
-def send(data, method):
+#will pass even if some args arnt sent 
+
+def send(data, method, sock=None, opcode=None, block_number=None, addr=None):
     if method == Traditonal:
         send_message(data)
     elif method == TFTP:
@@ -85,4 +86,4 @@ def send(data, method):
     else:
         raise ValueError(f"Invalid transfer method: {method}")
     
-    """
+
