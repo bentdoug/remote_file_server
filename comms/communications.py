@@ -6,7 +6,7 @@ import traceback
 SEPARATOR = env.OPCODES["Seperator"]
 BUFFER_SIZE = int(env.OPCODES["Buffer_Size"])
 HOST = "127.0.0.1"  # Standard loopback interface address (localhost)
-PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
+PORT = 65432  # Port to listen on 
 versions = ['Client', 'Server']
 
 
@@ -19,9 +19,15 @@ class comms():
             self.socket = connect.receive_client_connection(HOST, PORT)[0]
 
     def send_str(self, str):
+        print("{} is sending {} as string".format(versions[self.version], str))
         self.socket.send(f"{str}".encode())
 
-    def send_opcode(self, opcode, file_name=None):
+    def send_hash(self, file_name, hash):
+        to_send = f"\"{file_name}\" : \"{hash}\""
+        to_send = "{" + to_send + "}"
+        self.send_str(to_send)
+
+    def send_opcode(self, opcode, file_name="None"):
         to_send = f"{opcode}{SEPARATOR}{file_name}"
         print("{} is sending {}".format(versions[self.version], to_send))
         self.socket.send(to_send.encode())
@@ -65,9 +71,9 @@ class comms():
         while True:
             # read 1024 bytes from the socket (receive)
             bytes_read = self.socket.recv(BUFFER_SIZE)
-            if not bytes_read:    
-                # nothing is received
-                # file transmitting is done
+            print('bytes_read = ', bytes_read)
+            if bytes_read == b'OP_DONE<SEPERATOR>None':    
+                # nothing left to receive
                 break
             # write to the file the bytes we just received
             str_of_file += str(bytes_read)

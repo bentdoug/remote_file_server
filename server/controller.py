@@ -4,6 +4,7 @@ import TFTPfinal
 import comms.communications as comms
 import Database
 import json
+import sys
 
 PACKET_FORMAT = env.PACKET_FORMAT #"ss"  opcode [b'<STR>], filename [b'<STR>]
 OPCODES = env.OPCODES # Dictionary of opcodes key: name/function - value: corresponding opcode
@@ -46,24 +47,28 @@ class server:
             if recvd[0] == OPCODES["request_file_hash"]: # Client is requesting the server to send the stored hash of the specified file
                 pass
             if recvd[0] == OPCODES["disconnect"]: # Client is requesting to disconnect. Triggers final syncronization followed by disconnection
-                self.sync()
+                #self.sync()
                 self.comms.disconnect()
+                state = OPCODES["Quit"]
 
     def sync(self):
         '''
         Syncronizes the server db with the client file's state
         '''
         received_file_hashes = ""
+        client_hashes = {}
         if self.files_hashes.keys():
             for file in self.files_hashes.keys():
                 self.comms.send_opcode(OPCODES["request_file_hash"], file)
-                received_file_hashes.append(self.comms.recieve_str())
+                received_file_hashes += (self.comms.recieve_str())
             print('received hashes {}'.format(received_file_hashes))
-            client_hashes = json.loads(received_file_hashes)
+            recvd_hashes = json.loads(received_file_hashes)
+            client_hashes |= recvd_hashes
             to_update = []
             # Create a list of files that are no longer up-to-date
             for file in self.files_hashes.keys():
                 try:
+                    print(type(self.files_hashes), type(client_hashes))
                     if self.files_hashes[file] != client_hashes[file]:
                         to_update.append(file)
                 except KeyError:
@@ -83,6 +88,7 @@ class server:
             file (str):
                 A string indicating the name of the file who's information is being requested.
         '''
+        self.comms.send_opcode(OPCODES["request_file_contents"], file)
         file_name, file_contents = self.comms.recieve_file()
         self.save_file(file_name, file_contents)
 
@@ -97,6 +103,7 @@ class server:
         print("Server is attempting to save the received file.")
         Database.save_file(file_name, file_contents) # TODO: Send the contents of the unpacked file to get saved to the db
         self.files_hashes[file_name] = hash(file_contents)
+        print("{} has been succesfully saved".format(file_name))
 
     def compare_hash(self, file_name):
         '''
