@@ -4,14 +4,14 @@ CS-475 Computer Networks Final Project
 
 README
 
-Note: This README is for our group submission, including Ian Utz, Ben Douglas, and Matthew Parrias
+Note: This README is for our group submission, including Ian Utz, Ben Douglas, and Matthew Parias
 
 1. We implemented a file sharing system as our final project. We encountered some issues,
 such as a bad file descriptor after the first command was given to by the client. We
 fixed this issue by 
 
 2. The group consisted of Ben Douglas, who was responsible for the controller and command lines,
-Matthew Parrias, who was responsible for the TFTP protocol, and Ian Utz, who was responsible for
+Matthew Parias, who was responsible for the TFTP protocol, and Ian Utz, who was responsible for
 the Database initalization and the connection between the user interface and the controller for the
 client
 
