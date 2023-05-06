@@ -23,7 +23,7 @@ class server:
         self.files_hashes = self.db.get_db()
         self.comms = comms.comms(1)
         self.sync()
-        self.comms.receive_opcode()
+        self.listen_for_cmd()
 
     def listen_for_cmd(self):
         '''
@@ -32,25 +32,20 @@ class server:
         '''
         state = None
         while state is not OPCODES["Quit"]:
-            recvd = self.comms.listen()
-            if recvd[0] == OPCODES["request_file_info"]: # Client requesting server's version of specified file
-                self.send_acknowledgement(OPCODES["request_file_contents"])
+            recvd = self.comms.receive_opcode()
+            if recvd[0] == OPCODES["request_file_contents"]: # Client requesting server's version of specified file
                 self.send_file_info(recvd[1])
-            if recvd[0] == OPCODES["send_file_info"]: # Client requesting to send server the client's version of specified file
-                self.send_acknowledgement(OPCODES["send_file_contents"])
+            if recvd[0] == OPCODES["send_file_contents"]: # Client requesting to send server the client's version of specified file
                 self.get_file_info(recvd[1])
             if recvd[0] == OPCODES["compare_hashes"]: # Client is requesting to compare the hash of the specified file
-                self.send_acknowledgement(OPCODES["compare_hashes"])
                 self.compare_hash(recvd[1])
             if recvd[0] == OPCODES["add_file"]:
-                self.send_acknowledgment(OPCODES["add_file"])
                 self.get_file_info(recvd[1])
             if recvd[0] == OPCODES["send_file_hash"]: # Client is requesting to send the hash of the specified file to the server
                 pass
             if recvd[0] == OPCODES["request_file_hash"]: # Client is requesting the server to send the stored hash of the specified file
                 pass
             if recvd[0] == OPCODES["disconnect"]: # Client is requesting to disconnect. Triggers final syncronization followed by disconnection
-                self.send_acknowledgement(OPCODES["disconnect"])
                 self.sync()
                 self.comms.disconnect()
 
@@ -77,6 +72,7 @@ class server:
             # Request to update out-of-date files
             for file in to_update:
                 self.get_file_info(file)
+        self.comms.send_opcode(OPCODES["Done"])
 
     def get_file_info(self, file):
         '''
@@ -87,12 +83,10 @@ class server:
             file (str):
                 A string indicating the name of the file who's information is being requested.
         '''
-        packet_info = [OPCODES["request_file_contents"], file.encode('utf-8')]
-        request_cmd = struct.pack(PACKET_FORMAT, *packet_info)
-        file_contents = self.client.send_and_recv(request_cmd)
-        self.save_file(file_contents)
+        file_name, file_contents = self.comms.recieve_file()
+        self.save_file(file_name, file_contents)
 
-    def save_file(self, file):
+    def save_file(self, file_name, file_contents):
         '''
         Initiate saving the contents of a file recieved from the client and save the hash of the new file
 
@@ -100,9 +94,9 @@ class server:
             file (struct)
                 The packet containing the file to be unpacked and saved to the server
         '''
-        file_contents = struct.unpack(PACKET_FORMAT, file)
-        self.db.save_file(file_contents) # TODO: Send the contents of the unpacked file to get saved to the db
-        self.files_hashes[file] = hash(file_contents)
+        print("Server is attempting to save the received file.")
+        Database.save_file(file_name, file_contents) # TODO: Send the contents of the unpacked file to get saved to the db
+        self.files_hashes[file_name] = hash(file_contents)
 
     def compare_hash(self, file_name):
         '''

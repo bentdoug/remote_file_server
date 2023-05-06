@@ -1,6 +1,7 @@
 import Server_Client_connections as connect
 import common_variables as env
 import os
+import traceback
 
 SEPARATOR = env.OPCODES["Seperator"]
 BUFFER_SIZE = int(env.OPCODES["Buffer_Size"])
@@ -20,10 +21,9 @@ class comms():
     def send_str(self, str):
         self.socket.send(f"{str}".encode())
 
-    def send_opcode(self, opcode, file_name):
-        print("{} is sending {}".format(versions[self.version], opcode))
+    def send_opcode(self, opcode, file_name=None):
         to_send = f"{opcode}{SEPARATOR}{file_name}"
-        print("sending; ", to_send)
+        print("{} is sending {}".format(versions[self.version], to_send))
         self.socket.send(to_send.encode())
 
     def receive_opcode(self):
@@ -34,6 +34,7 @@ class comms():
         return [opcode, file_name]
 
     def send_file(self, file_path):
+        print("{} is sending {}".format(versions[self.version], file_path))
         # get file size
         filesize = os.path.getsize(file_path)
 
@@ -52,24 +53,30 @@ class comms():
                 self.socket.sendall(bytes_read)
 
     def recieve_file(self):
+        print('{} is attempting to recieve a file'.format(versions[self.version]))
         received = self.socket.recv(BUFFER_SIZE).decode()
         filename, filesize = received.split(SEPARATOR)
         # remove absolute path if there is
         filename = os.path.basename(filename)
         # convert to integer
         filesize = int(filesize)
+        str_of_file = ""
 
-        with open(filename, "wb") as f:
-            while True:
-                # read 1024 bytes from the socket (receive)
-                bytes_read = self.socket.recv(BUFFER_SIZE)
-                if not bytes_read:    
-                    # nothing is received
-                    # file transmitting is done
-                    break
-                # write to the file the bytes we just received
-                f.write(bytes_read)
+        while True:
+            # read 1024 bytes from the socket (receive)
+            bytes_read = self.socket.recv(BUFFER_SIZE)
+            if not bytes_read:    
+                # nothing is received
+                # file transmitting is done
+                break
+            # write to the file the bytes we just received
+            str_of_file += str(bytes_read)
+        print('{} has recieved {}'.format(versions[self.version], filename))
+        return filename, str_of_file
 
     def recieve_str(self):
         received = self.socket.recv(BUFFER_SIZE).decode()
         return received
+    
+    def disconnect(self):
+        self.socket.close()

@@ -52,5 +52,6 @@ def save_file(title, data):
     None
     '''
     path = os.getcwd()
+    path += "/bin/server"
     with open("{}/{}".format(path, title), "w") as f:
         f.write(data)
